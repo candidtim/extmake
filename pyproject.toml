@@ -16,4 +16,5 @@ requests = "^2.31.0"
 appdirs = "^1.4.4"
 
 [tool.poetry.scripts]
-extmake = "extmake.main:main"
+extmake = "extmake.cli:main"
+extmake-edit = "extmake.cli:edit"

@@ -135,6 +135,12 @@ For example, in a file `~/.ssh/config`:
         User git
         IdentityFile ~/.ssh/my_rsa
 
+## Troubleshooting
+
+In case of problems, try clearing the cache:
+
+    extmake-edit cache clear
+
 ## Internals
 
 `extmake` cache resolves all `#include` directives by find the according
@@ -150,7 +156,6 @@ the user data directory (somewhere in user `$HOME`, depending on the OS).
  - Resolve included target names, allow overrides.
    - Add the `#super make TARGET` directive.
    - A command to generate an override, like `extmake-edit override TARGET`
- - `extmake-edit cache` to manage the cached resources
  - Allow overriding the variables defined in the included files with `?=`
  - Generate a sample configuration file (`config.toml.example`) alongside the
    config file.

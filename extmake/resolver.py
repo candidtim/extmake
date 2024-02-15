@@ -1,5 +1,6 @@
 import hashlib
 import re
+import shutil
 from pathlib import Path
 from typing import Iterator
 
@@ -71,3 +72,8 @@ def resolve_makefile() -> Path:
     else:
         # that's right, return this path and let make complain properly:
         return src
+
+
+def clear_cache():
+    cache = Path(user_cache_dir("extmake"))
+    shutil.rmtree(cache)
