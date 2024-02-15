@@ -105,8 +105,7 @@ preprocessed.
 ### Eject
 
 At any time you can stop using ExtMake. Ejecting will resolve all includes and
-generate a single complete Makefile with all included instruction embedded into
-it:
+generate a single complete Makefile with all included content embedded into it:
 
     extmake-edit eject [--file FILE]
 
@@ -121,20 +120,20 @@ on the host OS:
 
 ### Using public or private Git servers
 
-By default, ExtMake assume that `"vendor/repository"` in the include directives
-corresponds to GitHub `"username/repository"`. Configuration allows defining a
-different Git server associated with a `"verndor"` key:
+By default, ExtMake assumes that `"vendor/repository"` in the include
+directives corresponds to GitHub `"username/repository"`. Configuration allows
+defining a different Git server associated with a `"verndor"` key:
 
     [extmake.respositories]
-    somevendor = gitlab.mycompany.com
+    somevendor = gitlab.example.com
 
 ExtMake uses Git to clone the repository and will effectively reuse the SSH
 config to authenticate with a private server, for example.
 
 For example, in a file `~/.ssh/config`:
 
-    Host gitlab.mycompany.com
-        HostName gitlab.mycompany.com
+    Host gitlab.example.com
+        HostName gitlab.example.com
         User git
         IdentityFile ~/.ssh/my_rsa
 
@@ -144,21 +143,25 @@ In case of problems, try clearing the cache:
 
     extmake-edit cache clear
 
+Feel free to [report a bug](https://github.com/candidtim/extmake/issues).
+
 ## Internals
 
-`extmake` cache resolves all `#include` directives by find the according
-dependencies and producing a new `Makefile` where all includes are substituted
-by the content of the included files.
+`extmake` resolves all `#include` directives by finding the declared
+"dependencies" and producing a new `Makefile` where all includes are
+substituted by the content of the included files.
 
-For better performance, dependencies and the resolved `Makefiles` are cached in
-the user data directory (somewhere in user `$HOME`, depending on the OS).
+For better performance, both the dependencies and the resolved `Makefiles` are
+cached in the user data directory (somewhere in user `$HOME`, depending on the
+OS).
 
 ## Future features
 
- - Include from remote repositories: GitHub first.
- - Include from remote repositories: support custom vendor repositories through
-   a configuration.
- - A hint about the use of Extmake in `make --help` and in case of errors
+ - Include from remote repositories: GitHub.
+ - Include from remote repositories: support custom repositories through a
+   configuration.
+ - Include from remote repositories: custom paths with the remote repo.
+ - A hint about the use of ExtMake in `make --help` and in case of errors
    raised by `make`.
  - Better error handling: when `make` or `git` are not available, all internal
    errors.
@@ -171,4 +174,5 @@ the user data directory (somewhere in user `$HOME`, depending on the OS).
  - Allow overriding the variables defined in the included files with `?=`.
  - Generate a sample configuration file (`config.toml.example`) alongside the
    config file, or propose another way to generate the configuration file.
+ - A command to print user data (cache) and config locations.
  - PyPI distribution.
