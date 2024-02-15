@@ -1,6 +1,6 @@
-# ExtMake - GNU Make wrapper with #include and more
+# ExtMake - `make` wrapper with #include and more
 
-ExtMake is a loose wordplay on a "GNU **make** with an ability to include
+ExtMake is a loose wordplay on a "**make** with an ability to include
 **ext**ernal Makefiles".
 
 Makefiles are often (ab?)used for task automation in the projects not related
@@ -52,7 +52,7 @@ overhead.
 
 ## Dependencies
 
- - GNU Make
+ - Make
  - Git, if you include files from GitHub or other Git servers
 
 ## Usage
@@ -98,6 +98,9 @@ In the current implementation, syntax parsing is quite naive: included
 resources are inserted verbatim at the location of the `#include` directive.
 Issues such as conflicting target names, for example, are not controlled, while
 `make` is left to do its job and report any further syntax errors and warnings.
+
+Presently, nested includes are not supported: included files are not
+preprocessed.
 
 ### Eject
 
@@ -150,13 +153,22 @@ by the content of the included files.
 For better performance, dependencies and the resolved `Makefiles` are cached in
 the user data directory (somewhere in user `$HOME`, depending on the OS).
 
-## Possible future features
+## Future features
 
+ - Include from remote repositories: GitHub first.
+ - Include from remote repositories: support custom vendor repositories through
+   a configuration.
+ - A hint about the use of Extmake in `make --help` and in case of errors
+   raised by `make`.
+ - Better error handling: when `make` or `git` are not available, all internal
+   errors.
  - Parse the `--file` (`-f`, `--makefile`) argument and do not proxy it.
    - Same for the `eject` command.
  - Resolve included target names, allow overrides.
    - Add the `#super make TARGET` directive.
-   - A command to generate an override, like `extmake-edit override TARGET`
- - Allow overriding the variables defined in the included files with `?=`
+   - A command to generate an override, like `extmake-edit override TARGET`.
+ - Nested includes.
+ - Allow overriding the variables defined in the included files with `?=`.
  - Generate a sample configuration file (`config.toml.example`) alongside the
-   config file.
+   config file, or propose another way to generate the configuration file.
+ - PyPI distribution.
