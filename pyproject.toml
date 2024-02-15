@@ -1,0 +1,19 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "extmake"
+version = "0.1.0"
+description = ""
+authors = ["candidtim <timcandid@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+click = "^8.1.7"
+requests = "^2.31.0"
+appdirs = "^1.4.4"
+
+[tool.poetry.scripts]
+extmake = "extmake.main:main"
