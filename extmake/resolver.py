@@ -76,4 +76,5 @@ def resolve_makefile() -> Path:
 
 def clear_cache():
     cache = Path(user_cache_dir("extmake"))
-    shutil.rmtree(cache)
+    if cache.is_dir():
+        shutil.rmtree(cache)

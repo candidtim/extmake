@@ -153,6 +153,7 @@ the user data directory (somewhere in user `$HOME`, depending on the OS).
 ## Possible future features
 
  - Parse the `--file` (`-f`, `--makefile`) argument and do not proxy it.
+   - Same for the `eject` command.
  - Resolve included target names, allow overrides.
    - Add the `#super make TARGET` directive.
    - A command to generate an override, like `extmake-edit override TARGET`
