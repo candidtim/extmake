@@ -149,7 +149,6 @@ Feel free to [report a bug](https://github.com/candidtim/extmake/issues).
 
 ## Future features
 
- - Include from remote repositories: custom paths with the remote repo.
  - A hint about the use of ExtMake in `make --help` and in case of errors
    raised by `make`.
  - Better error handling: when `make` or `git` are not available, all internal

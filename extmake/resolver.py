@@ -7,9 +7,9 @@ from typing import Iterator
 from appdirs import user_cache_dir
 
 from . import git
+from . import dsn
 
-RE_INCLUDE = re.compile(r"^\s*#include\s+\"(.+)\"\s*$")
-RE_SPEC_REMOTE = re.compile(r"^(.+)/(.+)@(.+)$")
+RE_INCLUDE = re.compile(r"^\s*include\s+(git=.+)\s*$")
 
 
 def _string_hash(s: str) -> str:
@@ -28,37 +28,22 @@ def _file_hash(path: Path) -> str:
     return md5.hexdigest()
 
 
-def _github_clone(spec: str) -> Path:
+def _git_clone(url: str, rev: str) -> Path:
     """
-    Get the local path to the repository specified by the remote spec.
+    Get the local path to the clone of the specified repository.
     Will clone, pull and checkout, if necessary.
     """
-    m = RE_SPEC_REMOTE.match(spec)
-    if not m:
-        # FIXME: dedicated error class (UsageError?)
-        raise ValueError(f"Invalid remote spec: {spec}")
-
-    vendor = m.group(1)
-    name = m.group(2)
-    version = m.group(3)
-
     # ensure the repository is cloned and up to date:
-    clone_dir = Path(user_cache_dir("extmake")) / _string_hash(spec)
+    clone_dir = Path(user_cache_dir("extmake")) / _string_hash(url)
     if not clone_dir.is_dir():
         clone_dir.parent.mkdir(parents=True, exist_ok=True)
-        url = f"git@github.com:{vendor}/{name}.git"
         git.clone(url, clone_dir)
     elif not git.commit_exists(clone_dir, version):
         git.pull(clone_dir)
 
-    # FIXME: If the user refers to a branch, it may be outdated.
-    #        But, pulling every time is bad for performance.
-    #        Consider adding a command to update the clones?
-    #        Presently, the only option is for the user to clear the cache.
-
     # ensure the repository is at the right version:
-    if not version in git.current_commit(clone_dir):
-        git.checkout(clone_dir, version)
+    if not rev in git.current_commit(clone_dir):
+        git.checkout(clone_dir, rev)
 
     return clone_dir
 
@@ -68,16 +53,13 @@ def _get_included_file_path(spec: str) -> Path:
     Given an include spec, find the local file with the content to include.
     Specs that refer to the remote locations will be ensured locally first.
     """
-    local_path = Path(spec)
-    if local_path.is_file():
-        return local_path
-
-    clone_dir = _github_clone(spec)
-    return clone_dir / "Makefile"
+    spec_kv = dsn.parse(spec)
+    clone_dir = _git_clone(spec_kv["git"], spec_kv.get("rev", "master"))
+    return clone_dir / spec_kv.get("path", "Makefile")
 
 
 def _get_include_content(spec: str) -> Iterator[str]:
-    """Given an include spec, yields ist content line by line."""
+    """Given an include spec, yields its content line by line."""
     include_path = _get_included_file_path(spec)
     with open(include_path, "r") as f:
         yield from f
@@ -90,9 +72,7 @@ def _preprocess(src: Path) -> Iterator[str]:
             m = RE_INCLUDE.match(line)
             if m:
                 include_spec = m.group(1)
-                yield "\n"  # avoid syntax errors due to missing newline
                 yield from _get_include_content(include_spec)
-                yield "\n"  # avoid syntax errors due to missing newline
             else:
                 yield line
 
