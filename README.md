@@ -100,15 +100,12 @@ The argument is a [DSN](https://en.wikipedia.org/wiki/Data_source_name)
 formatted as a series of `key=value` pairs separated by a semicolon `;`.
 Following keys are supported:
 
- - `git`: a Git repository URL, such as the one that can be used with `git
-   clone`; this is the only mandatory key
+ - `git`: a Git repository URL, such that can be used with `git clone`; this
+   is the only mandatory key
  - `rev`: a Git commit reference, such as a branch name, a tag name, or a SHA;
    defaults to `master`
  - `path`: a path within a repository pointing to the file to be included;
    defaults to `Makefile`
- - `update`: an update policy to use for keeping the local copy of the included
-   file up to date; possible values are: `manual` and `always`; defaults to
-   `manual`
 
 As with the original `include` directive, included resources are inserted
 verbatim at the location of the directive. Issues such as conflicting target
@@ -117,6 +114,13 @@ report any further syntax warning or errors.
 
 Presently, nested Git includes are not supported: included files are not
 preprocessed.
+
+### Best practices
+
+ - To keep the builds reproducible, it is best to set the `rev` to a tag
+     - If you don't use tags for the `rev`, you can run `extmake-edit cache
+       clear` to force the update of the dependencies
+ - `*.mk` is a common naming convention for the files that are to be included
 
 ### Using public or private Git servers
 
@@ -139,13 +143,12 @@ generate a single complete Makefile with all included content embedded into it:
 
 ## Troubleshooting
 
-For better performance, both the dependencies and the resolved `Makefiles` are
-cached in the user data directory (somewhere in user `$HOME`, depending on the
-OS). In case of problems, try clearing the cache:
+ - For better performance, both the dependencies and the resolved `Makefiles`
+   are cached in the user data directory (somewhere in user `$HOME`, depending
+   on the OS). In case of problems, try clearing the cache with `extmake-edit
+   cache clear`.
 
-    extmake-edit cache clear
-
-Feel free to [report a bug](https://github.com/candidtim/extmake/issues).
+ - Feel free to [report a bug](https://github.com/candidtim/extmake/issues).
 
 ## Future features
 
@@ -160,11 +163,11 @@ Feel free to [report a bug](https://github.com/candidtim/extmake/issues).
    - A command to generate an override, like `extmake-edit override TARGET`.
  - Nested includes.
  - Allow overriding the variables defined in the included files with `?=`.
- - Generate a sample configuration file (`config.toml.example`) alongside the
-   config file, or propose another way to generate the configuration file.
  - A command to print user data (cache) and config locations.
+ - More fine grained cache management (e.g., only clear the cache that is
+   relevant in the context)
  - PyPI distribution.
- - A command to update the cloned dependencies when they refer to branches,
-   or solve the stale dependencies issues otherwise.
-   - `extmake-edit update [--file FILE]`? Or, `pull`?
-   - respect the udpate policy
+ - A command to update the cloned dependencies when they refer to branches.
+   E.g., - `extmake-edit update [--file FILE]`
+ - Update policy to control how often the cloned repositories are updated.
+   E.g., `update=manual|always` in the DSN.
