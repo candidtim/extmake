@@ -1,7 +1,23 @@
-# ExtMake - `make` wrapper with #include and more
+# ExtMake - `make` wrapper with `include git=...` and more
 
 ExtMake is a loose wordplay on a "**make** with an ability to include
 **ext**ernal Makefiles".
+
+While `make` supports the `include` directive, it can only include files from a
+local file system. ExtMake adds an ability to include files from Git
+repositories and stays out of the way for everything else. You can see ExtMake
+as a preprocessor or a wrapper around `make`.
+
+Features:
+
+ - backward-comptible syntax: any valid `Makefile` is valid for `extmake`
+ - no new syntax except for the added support of `git=...` extension for the
+   `include` directive
+ - straightforward implementation reuses `make` for everything else
+ - forward-compatible: ability to eject the configuration into a single
+   self-contained `Makefile`
+
+## Motivation
 
 Makefiles are often (ab?)used for task automation in the projects not related
 to C. But they are hardly reusable and often get copy-pasted between projects.
@@ -11,24 +27,16 @@ why not apply the same approach as in all other code - declare a dependency and
 load a reusable implementation from a "library"? This is the problem ExtMake is
 set to solve, with a touch of simplicity and minimalism.
 
-`extmake` is a simple **wrapper** over `make` with the following features:
-
- - no new syntax (not outside comments), uses regular Makefiles
- - the `#include` directive
- - include from both local files and remote repositories, private or public
- - straightforward implementation reuses `make` for everything else
- - ability to eject the configuration into a single self-contained Makefile
-
 ## Example
 
-File `Makefile` in a GitHub repository "example/common":
+File `Makefile` in a GitHub repository "example/test":
 
     test:
         poetry run pytest --cov-report term --cov=myproj tests/
 
 File `Makefile`:
 
-    #include "example/common@master"
+    include git=git@github.com:example/test.git;rev=1.0.0
 
     build: test
         poetry build
@@ -53,7 +61,7 @@ overhead.
 ## Dependencies
 
  - Make
- - Git, if you include files from GitHub or other Git servers
+ - Git
 
 ## Usage
 
@@ -81,51 +89,36 @@ For usage, run:
 
 ### Syntax
 
-In the current implementation, ExtMake adds a single directive: `#include`:
+The `include` directive is supported by `make` natively and interprets the
+arguments as file paths. On top of that, ExtMake can interpret the argument as
+a reference to a Git repository. For simplicity, a single Git reference is
+allowed for each `include` directive.
 
-    #include "PATH"
+    include git=URL[;key=value]...
 
-where `PATH` can be one of:
+The argument is a [DSN](https://en.wikipedia.org/wiki/Data_source_name)
+formatted as a series of `key=value` pairs separated by a semicolon `;`.
+Following keys are supported:
 
- - Local file path, pointing to any file (not necessarily a `Makfile`)
- - A string in the format `vendor/repository@ref`. By default, it is assumed to
-   be a GitHub reference (`username/repository`), but this can be overriden in
-   the ExtMake configuration to point to another public or private repository.
-   The repository is expected to have a `Makefile` in its root. `ref` is a Git
-   commit reference, such as branch name, tag name or a commit SHA.
+ - `git`: a Git repository URL, such as the one that can be used with `git
+   clone`; this is the only mandatory key
+ - `rev`: a Git commit reference, such as a branch name, a tag name, or a SHA;
+   defaults to `master`
+ - `path`: a path within a repository pointing to the file to be included;
+   defaults to `Makefile`
+ - `update`: an update policy to use for keeping the local copy of the included
+   file up to date; possible values are: `manual` and `always`; defaults to
+   `manual`
 
-In the current implementation, syntax parsing is quite naive: included
-resources are inserted verbatim at the location of the `#include` directive.
-Issues such as conflicting target names, for example, are not controlled, while
-`make` is left to do its job and report any further syntax errors and warnings.
+As with the original `include` directive, included resources are inserted
+verbatim at the location of the directive. Issues such as conflicting target
+names, for example, are not controlled and `make` is left to do its job and
+report any further syntax warning or errors.
 
-Presently, nested includes are not supported: included files are not
+Presently, nested Git includes are not supported: included files are not
 preprocessed.
 
-### Eject
-
-At any time you can stop using ExtMake. Ejecting will resolve all includes and
-generate a single complete Makefile with all included content embedded into it:
-
-    extmake-edit eject [--file FILE]
-
-## Configuration
-
-ExtMake looks up for the configuration files in the user config dirs, depending
-on the host OS:
-
- - Linux: `~/.config/extmake/config.toml`
- - MacOS: TBD
- - Windows: TBD
-
 ### Using public or private Git servers
-
-By default, ExtMake assumes that `"vendor/repository"` in the include
-directives corresponds to GitHub `"username/repository"`. Configuration allows
-defining a different Git server associated with a `"verndor"` key:
-
-    [extmake.respositories]
-    somevendor = gitlab.example.com
 
 ExtMake uses Git to clone the repository and will effectively reuse the SSH
 config to authenticate with a private server, for example.
@@ -137,28 +130,25 @@ For example, in a file `~/.ssh/config`:
         User git
         IdentityFile ~/.ssh/my_rsa
 
+### Eject
+
+At any time you can stop using ExtMake. Ejecting will resolve all includes and
+generate a single complete Makefile with all included content embedded into it:
+
+    extmake-edit eject [--file FILE]
+
 ## Troubleshooting
 
-In case of problems, try clearing the cache:
+For better performance, both the dependencies and the resolved `Makefiles` are
+cached in the user data directory (somewhere in user `$HOME`, depending on the
+OS). In case of problems, try clearing the cache:
 
     extmake-edit cache clear
 
 Feel free to [report a bug](https://github.com/candidtim/extmake/issues).
 
-## Internals
-
-`extmake` resolves all `#include` directives by finding the declared
-"dependencies" and producing a new `Makefile` where all includes are
-substituted by the content of the included files.
-
-For better performance, both the dependencies and the resolved `Makefiles` are
-cached in the user data directory (somewhere in user `$HOME`, depending on the
-OS).
-
 ## Future features
 
- - Include from remote repositories: support custom repositories through a
-   configuration.
  - Include from remote repositories: custom paths with the remote repo.
  - A hint about the use of ExtMake in `make --help` and in case of errors
    raised by `make`.
@@ -178,3 +168,4 @@ OS).
  - A command to update the cloned dependencies when they refer to branches,
    or solve the stale dependencies issues otherwise.
    - `extmake-edit update [--file FILE]`? Or, `pull`?
+   - respect the udpate policy
