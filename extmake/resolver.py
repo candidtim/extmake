@@ -6,26 +6,74 @@ from typing import Iterator
 
 from appdirs import user_cache_dir
 
+from . import git
+
 RE_INCLUDE = re.compile(r"^\s*#include\s+\"(.+)\"\s*$")
+RE_SPEC_REMOTE = re.compile(r"^(.+)/(.+)@(.+)$")
 
 
-def _path_hash(path: Path) -> str:
-    """MD5 hash of the absolute path of a given argument"""
+def _string_hash(s: str) -> str:
+    """MD5 hash of a given string"""
     md5 = hashlib.md5()
-    md5.update(str(path.resolve()).encode("utf-8"))
+    md5.update(s.encode("utf-8"))
     return md5.hexdigest()
+
+
+def _file_hash(path: Path) -> str:
+    """MD5 hash of the given file content"""
+    md5 = hashlib.md5()
+    with open(path, "rb") as f:
+        while chunk := f.read(4096):
+            md5.update(chunk)
+    return md5.hexdigest()
+
+
+def _github_clone(spec: str) -> Path:
+    """
+    Get the local path to the repository specified by the remote spec.
+    Will clone, pull and checkout, if necessary.
+    """
+    m = RE_SPEC_REMOTE.match(spec)
+    if not m:
+        # FIXME: dedicated error class (UsageError?)
+        raise ValueError(f"Invalid remote spec: {spec}")
+
+    vendor = m.group(1)
+    name = m.group(2)
+    version = m.group(3)
+
+    # ensure the repository is cloned and up to date:
+    clone_dir = Path(user_cache_dir("extmake")) / _string_hash(spec)
+    if not clone_dir.is_dir():
+        clone_dir.parent.mkdir(parents=True, exist_ok=True)
+        url = f"git@github.com:{vendor}/{name}.git"
+        git.clone(url, clone_dir)
+    elif not git.commit_exists(clone_dir, version):
+        git.pull(clone_dir)
+
+    # FIXME: If the user refers to a branch, it may be outdated.
+    #        But, pulling every time is bad for performance.
+    #        Consider adding a command to update the clones?
+    #        Presently, the only option is for the user to clear the cache.
+
+    # ensure the repository is at the right version:
+    if not version in git.current_commit(clone_dir):
+        git.checkout(clone_dir, version)
+
+    return clone_dir
 
 
 def _get_included_file_path(spec: str) -> Path:
     """
     Given an include spec, find the local file with the content to include.
-    Specs that refer to the remote locations will be ensured locall first.
+    Specs that refer to the remote locations will be ensured locally first.
     """
     local_path = Path(spec)
     if local_path.is_file():
         return local_path
 
-    raise NotImplementedError(f"Remote includes are not supported yet")
+    clone_dir = _github_clone(spec)
+    return clone_dir / "Makefile"
 
 
 def _get_include_content(spec: str) -> Iterator[str]:
@@ -54,7 +102,7 @@ def _get_resolved_makefile(src: Path) -> Path:
     Given a path to an existing not-preprocessed Makefile,
     prreprocess it if necessary and return a path to a processed file.
     """
-    cache = Path(user_cache_dir("extmake")) / _path_hash(src)
+    cache = Path(user_cache_dir("extmake")) / _file_hash(src)
 
     if not cache.is_file():
         cache.parent.mkdir(parents=True, exist_ok=True)

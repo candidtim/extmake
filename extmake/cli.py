@@ -19,7 +19,13 @@ def edit():
     pass
 
 
-@edit.command()
+@edit.command(help="Print the resolved Makefile")
+def print():
+    resolved_path = resolve_makefile()
+    click.echo_via_pager(resolved_path.read_text())
+
+
+@edit.command(help="Overwrite the Makefile with the resolved content")
 @click.confirmation_option(prompt="Are you sure you want to eject?")
 def eject():
     resolved_path = resolve_makefile()
@@ -30,12 +36,12 @@ def eject():
         sys.exit(2)
 
 
-@edit.group()
+@edit.group(help="Cache management")
 def cache():
     pass
 
 
-@cache.command()
+@cache.command(help="Clear all cache")
 @click.confirmation_option(prompt="Are you sure you want to clear all cache?")
 def clear():
     clear_cache()

@@ -157,7 +157,6 @@ OS).
 
 ## Future features
 
- - Include from remote repositories: GitHub.
  - Include from remote repositories: support custom repositories through a
    configuration.
  - Include from remote repositories: custom paths with the remote repo.
@@ -176,3 +175,6 @@ OS).
    config file, or propose another way to generate the configuration file.
  - A command to print user data (cache) and config locations.
  - PyPI distribution.
+ - A command to update the cloned dependencies when they refer to branches,
+   or solve the stale dependencies issues otherwise.
+   - `extmake-edit update [--file FILE]`? Or, `pull`?
