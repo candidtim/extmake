@@ -6,8 +6,7 @@ from typing import Iterator
 
 from appdirs import user_cache_dir
 
-from . import git
-from . import dsn
+from . import dsn, git
 
 RE_INCLUDE = re.compile(r"^\s*include\s+(git=.+)\s*$")
 
@@ -38,11 +37,11 @@ def _git_clone(url: str, rev: str) -> Path:
     if not clone_dir.is_dir():
         clone_dir.parent.mkdir(parents=True, exist_ok=True)
         git.clone(url, clone_dir)
-    elif not git.commit_exists(clone_dir, version):
+    elif not git.commit_exists(clone_dir, rev):
         git.pull(clone_dir)
 
     # ensure the repository is at the right version:
-    if not rev in git.current_commit(clone_dir):
+    if rev not in git.current_commit(clone_dir):
         git.checkout(clone_dir, rev)
 
     return clone_dir
@@ -93,8 +92,7 @@ def _get_resolved_makefile(src: Path) -> Path:
     return cache
 
 
-def resolve_makefile() -> Path:
-    src = Path("Makefile")
+def resolve_makefile(src: Path) -> Path:
     if src.is_file():
         return _get_resolved_makefile(src)
     else:
@@ -102,7 +100,41 @@ def resolve_makefile() -> Path:
         return src
 
 
-def clear_cache():
+def _dependencies(src: Path) -> Iterator[str]:
+    with open(src, "r") as f:
+        for line in f:
+            m = RE_INCLUDE.match(line)
+            if m:
+                yield m.group(1)
+
+
+def clear_file_cache(src: Path):
+    src = Path("Makefile")
+    cache = Path(user_cache_dir("extmake")) / _file_hash(src)
+    if cache.is_file():
+        cache.unlink()
+    for spec in _dependencies(src):
+        spec_kv = dsn.parse(spec)
+        clone_dir = Path(user_cache_dir("extmake")) / _string_hash(spec_kv["git"])
+        if clone_dir.is_dir():
+            shutil.rmtree(clone_dir)
+
+
+def update_cache(src: Path):
+    cache = Path(user_cache_dir("extmake")) / _file_hash(src)
+    if cache.is_file():
+        cache.unlink()
+    for spec in _dependencies(src):
+        spec_kv = dsn.parse(spec)
+        clone_dir = Path(user_cache_dir("extmake")) / _string_hash(spec_kv["git"])
+        if clone_dir.is_dir():
+            git.pull(clone_dir)
+            rev = spec_kv.get("rev", "master")
+            if rev not in git.current_commit(clone_dir):
+                git.checkout(clone_dir, rev)
+
+
+def clear_all_cache():
     cache = Path(user_cache_dir("extmake"))
     if cache.is_dir():
         shutil.rmtree(cache)

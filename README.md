@@ -152,22 +152,14 @@ generate a single complete Makefile with all included content embedded into it:
 
 ## Future features
 
- - A hint about the use of ExtMake in `make --help` and in case of errors
-   raised by `make`.
+ - A hint about the use of ExtMake in case of errors raised by `make`.
  - Better error handling: when `make` or `git` are not available, all internal
    errors.
- - Parse the `--file` (`-f`, `--makefile`) argument and do not proxy it.
-   - Same for the `eject` command.
- - Resolve included target names, allow overrides.
-   - Add the `#super make TARGET` directive.
-   - A command to generate an override, like `extmake-edit override TARGET`.
  - Nested includes.
- - Allow overriding the variables defined in the included files with `?=`.
- - A command to print user data (cache) and config locations.
- - More fine grained cache management (e.g., only clear the cache that is
-   relevant in the context)
  - PyPI distribution.
- - A command to update the cloned dependencies when they refer to branches.
-   E.g., - `extmake-edit update [--file FILE]`
+ - Resolve included target names, allow overrides.
+   - Add the `#super make TARGET` directive (or interpret `make super.TARGET`?)
+   - A command to generate an override, like `extmake-edit override TARGET`.
+ - Allow overriding the variables defined in the included files with `?=`.
  - Update policy to control how often the cloned repositories are updated.
    E.g., `update=manual|always` in the DSN.
