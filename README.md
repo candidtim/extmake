@@ -53,9 +53,9 @@ Install from PyPI:
 
     pip install extmake
 
-If you prefer so, you can safely alias `extmake` to `make`. ExtMake will
-process regular Makefiles by simply proxying them to `make`, albeit with some
-overhead.
+If you prefer so, you can safely use `extmake` everwhere instead of `make`.
+ExtMake will process regular Makefiles by simply proxying them to `make`,
+albeit with some overhead.
 
 ## Dependencies
 
@@ -154,10 +154,11 @@ generate a single complete Makefile with all included content embedded into it:
  - A hint about the use of ExtMake in case of errors raised by `make`.
  - Better error handling: when `make` or `git` are not available, all internal
    errors.
- - PyPI distribution.
  - Resolve included target names, allow overrides.
    - Add the `#super make TARGET` directive (or interpret `make super.TARGET`?)
    - A command to generate an override, like `extmake-edit override TARGET`.
  - Allow overriding the variables defined in the included files with `?=`.
  - Update policy to control how often the cloned repositories are updated.
    E.g., `update=manual|always` in the DSN.
+ - Ability to alias `alias make=extmake` (requires `extmake` using an absolute
+   path to `make`)
