@@ -3,11 +3,10 @@ import sys
 from pathlib import Path
 
 import click
-from appdirs import user_cache_dir
 
-from .cache import clear_all_cache
+from . import cache
 from .proxy import run_make
-from .resolver import clear_file_cache, resolve_makefile, update_cache
+from .resolver import clear_cache, resolve_makefile, update_cache
 
 makefile_option = click.option(
     "-f",
@@ -69,16 +68,16 @@ def update(makefile):
 
 
 @edit.group(help="Cache management")
-def cache():
+def _cache():
     pass
 
 
-@cache.command(help="Show the location of the local cache directory")
+@_cache.command(help="Show the location of the local cache directory")
 def show():
-    click.echo(Path(user_cache_dir("extmake")))
+    click.echo(cache.cache_root())
 
 
-@cache.command(help="Clear the cache")
+@_cache.command(help="Clear the cache")
 @click.confirmation_option(prompt="Are you sure you want to clear the cache?")
 @makefile_option
 @click.option(
@@ -90,6 +89,6 @@ def show():
 )
 def clear(clear_all, makefile):
     if clear_all:
-        clear_all_cache()
+        cache.clear_all()
     else:
-        clear_file_cache(makefile)
+        clear_cache(makefile)

@@ -44,5 +44,5 @@ def cached_dir(key: str) -> Path:
     return path
 
 
-def clear_all_cache():
+def clear_all():
     shutil.rmtree(cache_root())

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from extmake.cache import clear_all_cache
+from extmake import cache
 from extmake.cli import main
 
 
@@ -39,7 +39,7 @@ def test_makefile(tmp_path, local_repo):
 @pytest.fixture
 def clear_cache():
     yield
-    clear_all_cache()
+    cache.clear_all()
 
 
 def test_basic_include(test_makefile, capfd, clear_cache):
