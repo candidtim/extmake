@@ -4,38 +4,13 @@ import shutil
 from pathlib import Path
 from typing import Iterator
 
-from . import dsn, git
-from .cache import cached_dir, cached_file, content_key
+from . import cache, deps
 
 RE_INCLUDE = re.compile(r"^\s*include\s+(git=.+)\s*$")
 
 
-def _git_clone(url: str, rev: str) -> Path:
-    """
-    Get the local path to the clone of the specified repository.
-    Will clone, pull and checkout, if necessary.
-    """
-    # ensure the repository is cloned and up to date:
-    clone_dir = cached_dir(key=url)
-    if not clone_dir.is_dir():
-        git.clone(url, clone_dir)
-    elif not git.commit_exists(clone_dir, rev):
-        git.pull(clone_dir)
-
-    # ensure the repository is at the right version:
-    git.checkout(clone_dir, rev)
-
-    return clone_dir
-
-
-def _get_included_file_path(spec: str) -> Path:
-    """
-    Given an include spec, find the local file with the content to include.
-    Specs that refer to the remote locations will be ensured locally first.
-    """
-    spec_kv = dsn.parse(spec)
-    clone_dir = _git_clone(spec_kv["git"], spec_kv.get("rev", "master"))
-    return clone_dir / spec_kv.get("path", "Makefile")
+def _resolved_cache(src: Path) -> Path:
+    return cache.cached_file(key=cache.content_key(src))
 
 
 def _preprocess(src: Path) -> Iterator[str]:
@@ -45,7 +20,7 @@ def _preprocess(src: Path) -> Iterator[str]:
             m = RE_INCLUDE.match(line)
             if m:
                 include_spec = m.group(1)
-                include_path = _get_included_file_path(include_spec)
+                include_path = deps.include_path(include_spec)
                 yield from _preprocess(include_path)
             else:
                 yield line
@@ -56,14 +31,14 @@ def _get_resolved_makefile(src: Path) -> Path:
     Given a path to an existing not-preprocessed Makefile,
     prreprocess it if necessary and return a path to a processed file.
     """
-    cache = cached_file(key=content_key(src))
+    file_cache = _resolved_cache(src)
 
-    if not cache.is_file():
-        with open(cache, "w") as f:
+    if not file_cache.is_file():
+        with open(file_cache, "w") as f:
             for line in _preprocess(src):
                 f.write(line)
 
-    return cache
+    return file_cache
 
 
 def resolve_makefile(src: Path) -> Path:
@@ -85,26 +60,19 @@ def _dependencies(src: Path) -> Iterator[str]:
                 yield inlude_spec
 
 
+def _clear_resolved_cache(src: Path):
+    file_cache = _resolved_cache(src)
+    if file_cache.is_file():
+        file_cache.unlink()
+
+
 def clear_file_cache(src: Path):
-    src = Path("Makefile")
-    cache = cached_file(key=content_key(src))
-    if cache.is_file():
-        cache.unlink()
+    _clear_resolved_cache(src)
     for spec in _dependencies(src):
-        spec_kv = dsn.parse(spec)
-        clone_dir = cached_dir(key=spec_kv["git"])
-        if clone_dir.is_dir():
-            shutil.rmtree(clone_dir)
+        deps.clear_cache(spec)
 
 
 def update_cache(src: Path):
-    cache = cached_file(key=content_key(src))
-    if cache.is_file():
-        cache.unlink()
+    _clear_resolved_cache(src)
     for spec in _dependencies(src):
-        spec_kv = dsn.parse(spec)
-        clone_dir = cached_dir(key=spec_kv["git"])
-        if clone_dir.is_dir():
-            git.pull(clone_dir)
-            rev = spec_kv.get("rev", "master")
-            git.checkout(clone_dir, rev)
+        deps.update(spec)
