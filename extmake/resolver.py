@@ -23,8 +23,7 @@ def _git_clone(url: str, rev: str) -> Path:
         git.pull(clone_dir)
 
     # ensure the repository is at the right version:
-    if rev not in git.current_commit(clone_dir):
-        git.checkout(clone_dir, rev)
+    git.checkout(clone_dir, rev)
 
     return clone_dir
 
@@ -108,5 +107,4 @@ def update_cache(src: Path):
         if clone_dir.is_dir():
             git.pull(clone_dir)
             rev = spec_kv.get("rev", "master")
-            if rev not in git.current_commit(clone_dir):
-                git.checkout(clone_dir, rev)
+            git.checkout(clone_dir, rev)
