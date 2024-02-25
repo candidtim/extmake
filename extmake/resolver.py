@@ -39,13 +39,6 @@ def _get_included_file_path(spec: str) -> Path:
     return clone_dir / spec_kv.get("path", "Makefile")
 
 
-def _get_include_content(spec: str) -> Iterator[str]:
-    """Given an include spec, yields its content line by line."""
-    include_path = _get_included_file_path(spec)
-    with open(include_path, "r") as f:
-        yield from f
-
-
 def _preprocess(src: Path) -> Iterator[str]:
     """Preprocess an input file, yielding the new content line by line."""
     with open(src, "r") as f:
@@ -53,7 +46,8 @@ def _preprocess(src: Path) -> Iterator[str]:
             m = RE_INCLUDE.match(line)
             if m:
                 include_spec = m.group(1)
-                yield from _get_include_content(include_spec)
+                include_path = _get_included_file_path(include_spec)
+                yield from _preprocess(include_path)
             else:
                 yield line
 
@@ -86,7 +80,10 @@ def _dependencies(src: Path) -> Iterator[str]:
         for line in f:
             m = RE_INCLUDE.match(line)
             if m:
-                yield m.group(1)
+                include_spec = m.group(1)
+                include_path = _get_included_file_path(include_spec)
+                yield from _dependencies(include_path)
+                yield inlude_spec
 
 
 def clear_file_cache(src: Path):
