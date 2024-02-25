@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import shutil
 from pathlib import Path
 from typing import Iterator
@@ -14,9 +15,13 @@ def resolve_makefile(src: Path) -> Path:
     makefile = _resolved_makefile(src)
 
     if not makefile.is_file():
+        logging.debug(f"No cache found for {src}, preprocessing")
         with open(makefile, "w") as f:
             for line in _preprocess(src):
                 f.write(line)
+        logging.debug(f"Cached the processed {src} to {makefile}")
+    else:
+        logging.debug(f"Using cached {makefile}")
 
     return makefile
 
@@ -50,4 +55,7 @@ def _resolved_makefile(src: Path) -> Path:
 def clear_cache(src: Path):
     makefile = _resolved_makefile(src)
     if makefile.is_file():
+        logging.debug(f"Removing cached {makefile}")
         makefile.unlink()
+    else:
+        logging.debug(f"No cache found for {src}")

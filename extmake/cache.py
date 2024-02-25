@@ -1,3 +1,4 @@
+import logging
 import hashlib
 import shutil
 import string
@@ -45,4 +46,5 @@ def cached_dir(key: str) -> Path:
 
 
 def clear_all():
+    logging.debug(f"Removing all cache at {cache_root()}")
     shutil.rmtree(cache_root())
