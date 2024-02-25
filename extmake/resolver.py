@@ -24,38 +24,30 @@ def resolve_makefile(src: Path) -> Path:
 def _preprocess(src: Path) -> Iterator[str]:
     """Preprocess an input file, yielding the new content line by line."""
     for line in parser.parse(src):
-        if isinstance(line, parser.Dependency):
-            include_path = deps.include_path(line.spec)
-            yield from _preprocess(include_path)
-        else:
-            yield line.raw
+        match line.TYPE:
+            case parser.Dependency.TYPE:
+                include_path = deps.include_path(line.spec)
+                yield from _preprocess(include_path)
+            case parser.RawLine.TYPE:
+                yield line.raw
+            case _:
+                raise AssertionError(f"unknown line type: {line.TYPE}")
 
 
-def _dependencies(src: Path) -> Iterator[str]:
+def dependencies(src: Path) -> Iterator[str]:
     for line in parser.parse(src):
-        if isinstance(line, parser.Dependency):
-            include_path = deps.include_path(line.spec)
-            yield from _dependencies(include_path)
-            yield inlude_spec
+        match line.TYPE:
+            case parser.Dependency.TYPE:
+                include_path = deps.include_path(line.spec)
+                yield from dependencies(include_path)
+                yield line.spec
 
 
 def _resolved_makefile(src: Path) -> Path:
     return cache.cached_file(key=cache.content_key(src))
 
 
-def _clear_resolved_cache(src: Path):
+def clear_cache(src: Path):
     makefile = _resolved_makefile(src)
     if makefile.is_file():
         makefile.unlink()
-
-
-def clear_cache(src: Path):
-    _clear_resolved_cache(src)
-    for spec in _dependencies(src):
-        deps.clear_cache(spec)
-
-
-def update_cache(src: Path):
-    _clear_resolved_cache(src)
-    for spec in _dependencies(src):
-        deps.update(spec)

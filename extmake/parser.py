@@ -11,13 +11,14 @@ class ParsedLine:
 
 @dataclass(frozen=True, slots=True)
 class Dependency(ParsedLine):
+    TYPE = "dependency"
     RE_INCLUDE = re.compile(r"^\s*include\s+(git=.+)\s*$")
     spec: str
 
 
 @dataclass(frozen=True, slots=True)
 class RawLine(ParsedLine):
-    pass
+    TYPE = "raw"
 
 
 def _parse_line(line: str) -> ParsedLine:

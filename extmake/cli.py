@@ -4,9 +4,7 @@ from pathlib import Path
 
 import click
 
-from . import cache
-from .proxy import run_make
-from .resolver import clear_cache, resolve_makefile, update_cache
+from . import cache, deps, proxy, resolver
 
 makefile_option = click.option(
     "-f",
@@ -36,8 +34,8 @@ def main(makefile, show_help, make_args):
         click.echo("Original make help is below.")
         click.echo()
         make_args = ["--help"]
-    resolved_path = resolve_makefile(makefile)
-    result = run_make(resolved_path, make_args)
+    resolved_path = resolver.resolve_makefile(makefile)
+    result = proxy.run_make(resolved_path, make_args)
     sys.exit(result.returncode)
 
 
@@ -49,7 +47,7 @@ def edit():
 @edit.command("print", help="Print the resolved Makefile")
 @makefile_option
 def _print(makefile):
-    resolved_path = resolve_makefile(makefile)
+    resolved_path = resolver.resolve_makefile(makefile)
     click.echo_via_pager(resolved_path.read_text())
 
 
@@ -57,17 +55,19 @@ def _print(makefile):
 @click.confirmation_option(prompt="Are you sure you want to eject?")
 @makefile_option
 def eject(makefile):
-    resolved_path = resolve_makefile(makefile)
+    resolved_path = resolver.resolve_makefile(makefile)
     shutil.copyfile(resolved_path, makefile)
 
 
 @edit.command(help="Pull the new versions of the include files")
 @makefile_option
 def update(makefile):
-    update_cache(makefile)
+    resolver.clear_cache(makefile)  # FIXME: leaky resolver abstraction
+    for spec in resolver.dependencies(makefile):
+        deps.update(spec)
 
 
-@edit.group(help="Cache management")
+@edit.group("cache", help="Cache management")
 def _cache():
     pass
 
@@ -78,8 +78,8 @@ def show():
 
 
 @_cache.command(help="Clear the cache")
-@click.confirmation_option(prompt="Are you sure you want to clear the cache?")
 @makefile_option
+@click.confirmation_option(prompt="Are you sure you want to clear the cache?")
 @click.option(
     "--all",
     "clear_all",
@@ -91,4 +91,6 @@ def clear(clear_all, makefile):
     if clear_all:
         cache.clear_all()
     else:
-        clear_cache(makefile)
+        resolver.clear_cache(makefile)
+        for spec in dependencies(src):
+            deps.clear_cache(spec)
