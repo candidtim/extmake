@@ -3,10 +3,10 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from appdirs import user_cache_dir
 from click.testing import CliRunner
 
 from extmake.cli import main
+from extmake.cache import clear_all_cache
 
 
 @pytest.fixture
@@ -36,9 +36,7 @@ def test_makefile(tmp_path, local_repo):
 @pytest.fixture
 def clear_cache():
     yield
-    cache_dir = Path(user_cache_dir("extmake"))
-    if cache_dir.is_dir():
-        shutil.rmtree(cache_dir)
+    clear_all_cache()
 
 
 def test_basic_include(test_makefile, capfd, clear_cache):

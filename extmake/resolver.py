@@ -4,27 +4,10 @@ import shutil
 from pathlib import Path
 from typing import Iterator
 
-from appdirs import user_cache_dir
-
 from . import dsn, git
+from .cache import cached_dir, cached_file, content_key
 
 RE_INCLUDE = re.compile(r"^\s*include\s+(git=.+)\s*$")
-
-
-def _string_hash(s: str) -> str:
-    """MD5 hash of a given string"""
-    md5 = hashlib.md5()
-    md5.update(s.encode("utf-8"))
-    return md5.hexdigest()
-
-
-def _file_hash(path: Path) -> str:
-    """MD5 hash of the given file content"""
-    md5 = hashlib.md5()
-    with open(path, "rb") as f:
-        while chunk := f.read(4096):
-            md5.update(chunk)
-    return md5.hexdigest()
 
 
 def _git_clone(url: str, rev: str) -> Path:
@@ -33,9 +16,8 @@ def _git_clone(url: str, rev: str) -> Path:
     Will clone, pull and checkout, if necessary.
     """
     # ensure the repository is cloned and up to date:
-    clone_dir = Path(user_cache_dir("extmake")) / _string_hash(url)
+    clone_dir = cached_dir(key=url)
     if not clone_dir.is_dir():
-        clone_dir.parent.mkdir(parents=True, exist_ok=True)
         git.clone(url, clone_dir)
     elif not git.commit_exists(clone_dir, rev):
         git.pull(clone_dir)
@@ -81,10 +63,9 @@ def _get_resolved_makefile(src: Path) -> Path:
     Given a path to an existing not-preprocessed Makefile,
     prreprocess it if necessary and return a path to a processed file.
     """
-    cache = Path(user_cache_dir("extmake")) / _file_hash(src)
+    cache = cached_file(key=content_key(src))
 
     if not cache.is_file():
-        cache.parent.mkdir(parents=True, exist_ok=True)
         with open(cache, "w") as f:
             for line in _preprocess(src):
                 f.write(line)
@@ -110,31 +91,25 @@ def _dependencies(src: Path) -> Iterator[str]:
 
 def clear_file_cache(src: Path):
     src = Path("Makefile")
-    cache = Path(user_cache_dir("extmake")) / _file_hash(src)
+    cache = cached_file(key=content_key(src))
     if cache.is_file():
         cache.unlink()
     for spec in _dependencies(src):
         spec_kv = dsn.parse(spec)
-        clone_dir = Path(user_cache_dir("extmake")) / _string_hash(spec_kv["git"])
+        clone_dir = cached_dir(key=spec_kv["git"])
         if clone_dir.is_dir():
             shutil.rmtree(clone_dir)
 
 
 def update_cache(src: Path):
-    cache = Path(user_cache_dir("extmake")) / _file_hash(src)
+    cache = cached_file(key=content_key(src))
     if cache.is_file():
         cache.unlink()
     for spec in _dependencies(src):
         spec_kv = dsn.parse(spec)
-        clone_dir = Path(user_cache_dir("extmake")) / _string_hash(spec_kv["git"])
+        clone_dir = cached_dir(key=spec_kv["git"])
         if clone_dir.is_dir():
             git.pull(clone_dir)
             rev = spec_kv.get("rev", "master")
             if rev not in git.current_commit(clone_dir):
                 git.checkout(clone_dir, rev)
-
-
-def clear_all_cache():
-    cache = Path(user_cache_dir("extmake"))
-    if cache.is_dir():
-        shutil.rmtree(cache)

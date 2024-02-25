@@ -5,9 +5,9 @@ from pathlib import Path
 import click
 from appdirs import user_cache_dir
 
+from .cache import clear_all_cache
 from .proxy import run_make
-from .resolver import (clear_all_cache, clear_file_cache, resolve_makefile,
-                       update_cache)
+from .resolver import clear_file_cache, resolve_makefile, update_cache
 
 makefile_option = click.option(
     "-f",
