@@ -1,45 +1,8 @@
-import shutil
-import subprocess
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
-from extmake import cache
 from extmake.cli import main
-
-
-@pytest.fixture
-def local_repo(tmp_path):
-    repo = tmp_path / "repo"
-    repo_url = repo.as_uri()
-    repo.mkdir()
-    include_file = repo / "include.mk"
-    include_file.write_text("included:\n\t@echo 'this is included'\n")
-    nesting_include_file = repo / "nesting_include.mk"
-    nesting_include_file.write_text(f"include git={repo_url};path=include.mk\n")
-    subprocess.run(["git", "init"], cwd=repo)
-    subprocess.run(["git", "add", "."], cwd=repo)
-    subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo)
-    yield repo
-    shutil.rmtree(repo)
-
-
-@pytest.fixture
-def test_makefile(tmp_path, local_repo):
-    local_repo_url = local_repo.as_uri()
-    makefile = tmp_path / "Makefile"
-    makefile.write_text(
-        f"include git={local_repo_url};path=include.mk\n\nall: included\n"
-    )
-    yield makefile
-    makefile.unlink()
-
-
-@pytest.fixture
-def clear_cache():
-    yield
-    cache.clear_all()
 
 
 def test_basic_include(test_makefile, capfd, clear_cache):
@@ -82,3 +45,18 @@ def test_error_proxied_from_make(test_makefile, capfd, clear_cache):
     result = runner.invoke(main, ["-f", test_makefile, "unknown_target"])
     assert result.exit_code == 2
     assert "no rule to make target" in capfd.readouterr().err.lower()
+
+
+def test_help():
+    runner = CliRunner()
+    result = runner.invoke(main, ["--help"])
+    assert result.exit_code == 0
+    assert "You are using ExtMake" in result.output
+
+
+def test_verbose(test_makefile, local_repo, caplog, clear_cache):
+    caplog.set_level("DEBUG")
+    runner = CliRunner()
+    result = runner.invoke(main, ["--verbose", "-f", test_makefile, "all"])
+    assert f"No cache found for {test_makefile}, preprocessing" in caplog.text
+    assert f"Cloning {local_repo.as_uri()}" in caplog.text

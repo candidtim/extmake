@@ -152,6 +152,7 @@ generate a single complete Makefile with all included content embedded into it:
 
 ## Future features
 
+ - A command to list all dependencies
  - A hint about the use of ExtMake in case of errors raised by `make`.
  - Better error handling: when `make` or `git` are not available, all internal
    errors.

@@ -61,7 +61,7 @@ def update(dsn_spec: str):
     clone_dir = _get_dependency_clone(spec.git, spec.rev)
     logging.debug(f"Pulling {spec.git} in {clone_dir}")
     git.pull(clone_dir)
-    logging.debug(f"Checking out {rev} in {clone_dir}")
+    logging.debug(f"Checking out {spec.rev} in {clone_dir}")
     git.checkout(clone_dir, spec.rev)
 
 
