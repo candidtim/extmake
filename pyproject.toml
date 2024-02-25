@@ -4,16 +4,40 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "extmake"
-version = "0.1.0"
-description = ""
+version = "1.0.0"
+description = "ExtMake - `make` wrapper with `include git=...` and more"
 authors = ["candidtim <timcandid@gmail.com>"]
+license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/candidtim/extmake/"
+repository = "https://github.com/candidtim/extmake/"
+documentation = "https://github.com/candidtim/extmake/blob/master/README.md"
+keywords = ["make", "wrapper", "include", "git", "dependency"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Pre-processors",
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/candidtim/extmake/issues"
 
 [tool.poetry.dependencies]
 python = "^3.10"
 click = "^8.1.7"
 requests = "^2.31.0"
 appdirs = "^1.4.4"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.0.2"
 
 [tool.poetry.scripts]

@@ -29,30 +29,29 @@ set to solve, with a touch of simplicity and minimalism.
 
 ## Example
 
-File `Makefile` in a GitHub repository "example/test":
+File `pytest.mk` in a GitHub repository "example/test":
 
     test:
         poetry run pytest --cov-report term --cov=myproj tests/
 
 File `Makefile`:
 
-    include git=git@github.com:example/test.git;rev=1.0.0
+    include git=git@github.com:example/test.git;rev=1.0.0;path=pytest.mk
 
-    build: test
+    build:
         poetry build
+
+    all: test build
 
 Usage:
 
-    extmake build
-
-## Status
-
-In active development, unstable.
+    extmake all
 
 ## Installation
 
-The tool is currently not stable enough to be published. Clone this repository
-if you are interested in using it in the meantime.
+Install from PyPI:
+
+    pip install extmake
 
 If you prefer so, you can safely alias `extmake` to `make`. ExtMake will
 process regular Makefiles by simply proxying them to `make`, albeit with some
@@ -112,14 +111,13 @@ verbatim at the location of the directive. Issues such as conflicting target
 names, for example, are not controlled and `make` is left to do its job and
 report any further syntax warning or errors.
 
-Presently, nested Git includes are not supported: included files are not
-preprocessed.
+Nested includes are supported.
 
 ### Best practices
 
  - To keep the builds reproducible, it is best to set the `rev` to a tag
-     - If you don't use tags for the `rev`, you can run `extmake-edit cache
-       clear` to force the update of the dependencies
+     - If you don't use tags for the `rev`, you can run `extmake-edit update`
+       to force the update of the dependencies
  - `*.mk` is a common naming convention for the files that are to be included
 
 ### Using public or private Git servers
