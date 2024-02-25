@@ -7,16 +7,23 @@ import click
 
 from . import cache, deps, proxy, resolver
 
-makefile_option = click.option(
-    "-f",
-    "--file",
-    "--makefile",
-    "makefile",
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, path_type=Path),
-    default="Makefile",
-    show_default=True,
-    help="Path to Makefile",
-)
+
+def makefile_option(exists=True):
+    return click.option(
+        "-f",
+        "--file",
+        "--makefile",
+        "makefile",
+        type=click.Path(exists=exists, file_okay=True, dir_okay=False, path_type=Path),
+        default="Makefile",
+        show_default=True,
+        help="Path to Makefile",
+    )
+
+
+def validate_makefile(path: Path):
+    if not path.is_file():
+        raise click.BadParameter(f"File {path} does not exist")
 
 
 def verbose_option(with_short_flag=True):
@@ -50,26 +57,25 @@ def setup_logging(verbose):
         "help_option_names": [],
     }
 )
-@makefile_option
+@makefile_option(exists=False)
 @verbose_option(with_short_flag=False)
 @click.option("-h", "--help", "show_help", is_flag=True, default=False)
 @click.argument("make_args", nargs=-1, type=click.UNPROCESSED)
 def main(makefile, show_help, make_args):
     if show_help:
         print_header()
-        click.echo("Original make help is below. More information about ExtMake follows after.")
-        click.echo()
-        make_args = ["--help"]
-
-    resolved_path = resolver.resolve_makefile(makefile)
-    result = proxy.run_make(resolved_path, make_args)
-
-    if show_help:
-        click.echo()
-        click.echo("Additional options provided by ExtMake:")
+        click.echo(
+            "Original make help is below. "
+            "More information about ExtMake follows after.\n"
+        )
+        proxy.run_make(makefile, args=["--help"])
+        click.echo("\nAdditional options provided by ExtMake:")
         click.echo("  --verbose                   Enable verbose output")
-
-    sys.exit(result.returncode)
+    else:
+        validate_makefile(makefile)
+        resolved_path = resolver.resolve_makefile(makefile)
+        result = proxy.run_make(resolved_path, make_args)
+        sys.exit(result.returncode)
 
 
 @click.group()
@@ -78,7 +84,7 @@ def edit():
 
 
 @edit.command("print", help="Print the resolved Makefile")
-@makefile_option
+@makefile_option()
 @verbose_option()
 def _print(makefile):
     resolved_path = resolver.resolve_makefile(makefile)
@@ -87,7 +93,7 @@ def _print(makefile):
 
 @edit.command(help="Overwrite the Makefile with the resolved content")
 @click.confirmation_option(prompt="Are you sure you want to eject?")
-@makefile_option
+@makefile_option()
 @verbose_option()
 def eject(makefile):
     resolved_path = resolver.resolve_makefile(makefile)
@@ -95,7 +101,7 @@ def eject(makefile):
 
 
 @edit.command(help="Pull the new versions of the include files")
-@makefile_option
+@makefile_option()
 @verbose_option()
 def update(makefile):
     resolver.clear_cache(makefile)  # FIXME: leaky resolver abstraction
@@ -114,7 +120,7 @@ def show():
 
 
 @_cache.command(help="Clear the cache")
-@makefile_option
+@makefile_option(exists=False)
 @verbose_option()
 @click.confirmation_option(prompt="Are you sure you want to clear the cache?")
 @click.option(
@@ -128,6 +134,7 @@ def clear(clear_all, makefile):
     if clear_all:
         cache.clear_all()
     else:
+        validate_makefile(makefile)
         resolver.clear_cache(makefile)
         for spec in resolver.dependencies(makefile):
             deps.clear_cache(spec)
