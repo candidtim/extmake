@@ -38,7 +38,8 @@ def main(makefile, show_help, make_args):
         click.echo()
         make_args = ["--help"]
     resolved_path = resolve_makefile(makefile)
-    run_make(resolved_path, make_args)
+    result = run_make(resolved_path, make_args)
+    sys.exit(result.returncode)
 
 
 @click.group()
